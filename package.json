@@ -1,9 +1,9 @@
 {
   "name": "fetch",
   "productName": "Fetch",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Windows 11 desktop front end for yt-dlp",
-  "author": "Fetch",
+  "author": "Andrew Adel",
   "license": "MIT",
   "main": "main.js",
   "private": true,
