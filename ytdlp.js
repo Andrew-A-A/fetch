@@ -35,12 +35,14 @@ function commonArgs(st) {
 
 function probeArgs(query, st) {
   const target = isUrl(query) ? query.trim() : `ytsearch20:${query.trim()}`;
-  return ['-J', '--flat-playlist', '--no-warnings', ...commonArgs(st), target];
+  return ['--ignore-config', '-J', '--flat-playlist', '--no-warnings', ...commonArgs(st), target];
 }
 
 // job: {url, preset, format, merge, opts:{subs,thumb,chap,meta,sb}, dir, live, matchFilter, dateafter, datebefore, archive, breakFilter, extraArgs}
 function downloadArgs(job, st) {
-  const a = [];
+  // The user's own yt-dlp config (%APPDATA%\yt-dlp\config.txt) would silently change paths and formats;
+  // Settings > Extra yt-dlp options is where app-wide extras belong.
+  const a = ['--ignore-config'];
   if (job.format) {
     a.push('-f', job.format);
     if (job.merge) a.push('--merge-output-format', job.merge.toLowerCase());

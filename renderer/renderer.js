@@ -390,13 +390,13 @@ function jobItem(j) {
   } else if (j.status === 'running' || j.status === 'paused') {
     const p = j.status === 'paused';
     const line = p ? `Paused · ${bytes(j.done) || '0 B'}${j.total ? ' of ' + bytes(j.total) : ''} · resumes where it left off`
-      : [j.total ? `${bytes(j.done)} of ${bytes(j.total)}` : 'Starting…', j.speed && `${bytes(j.speed)}/s`, j.eta != null && `${dur(j.eta)} left`, j.frags && `fragment ${j.frag} of ${j.frags}`].filter(Boolean).join(' · ');
+      : [j.note, j.total ? `${bytes(j.done)} of ${bytes(j.total)}` : j.note ? '' : j.stage === 'SponsorBlock' ? 'Checking sponsor segments…' : j.stage ? `${ppName(j.stage)}…` : 'Starting…', j.speed && `${bytes(j.speed)}/s`, j.eta != null && `${dur(j.eta)} left`, j.frags && `fragment ${j.frag} of ${j.frags}`].filter(Boolean).join(' · ');
     body = `${head(label)}<div class="pb${p ? ' paused' : ''}"><i style="width:${j.pct || 0}%"></i></div><div class="cap sec">${esc(line)}</div>`;
     side = btn(p ? 'resume' : 'pause', p ? 'Resume' : 'Pause', p ? 'play' : 'pause') + btn('cancel', 'Cancel', 'x');
   } else if (j.status === 'pp') {
     const done = j.ppDone || [];
     body = `${head(label)}<div class="row-c" style="gap:16px">${done.filter((n) => n !== j.pp).map((n) => `<span class="step"><span class="dot ok"></span>${esc(ppName(n))}</span>`).join('')}<span class="step"><span class="dot"></span>${esc(ppName(j.pp))}</span></div><div class="pb ind"><i></i></div>`;
-    side = btn('cancel', 'Cancel', 'x');
+    side = btn('pause', 'Pause', 'pause') + btn('cancel', 'Cancel', 'x');
   } else if (j.status === 'error') {
     const auth = /sign in|members|login|cookies|private|age/i.test(j.error || '');
     const open = S.q.details[j.id];
@@ -560,7 +560,7 @@ const VIEWS = { home: homeView, playlist: playlistView, queue: queueView, librar
 
 // ---------- actions ----------
 const A = {
-  go: (v) => { S.view = v; S.lib.menu = null; if (v === 'settings') loadTools(); render(); },
+  go: (v) => { S.view = v; S.lib.menu = null; if (v === 'settings') loadTools(); if (v === 'library') refreshLibrary(); render(); },
   ext: (u) => call('external', u),
   open: (p) => call('open', p),
   reveal: (p) => call('reveal', p),
@@ -728,6 +728,16 @@ api.on('library', (l) => { S.library = l; if (S.view === 'library') render(); })
 api.on('subs', (s) => { S.subs = s; if (S.view === 'subs') render(); });
 api.on('settings', (s) => { S.settings = s; });
 api.on('nav', (v) => A.go(v));
+
+// Files can be deleted or moved outside the app, so re-check the disk whenever the Library comes into view.
+async function refreshLibrary() {
+  const lib = await call('library');
+  if (lib.length === S.library.length && lib.every((x, i) => x.id === S.library[i].id)) return;
+  S.library = lib;
+  if (S.lib.sel && !lib.some((x) => x.id === S.lib.sel)) S.lib.sel = null;
+  if (S.view === 'library') render();
+}
+window.addEventListener('focus', () => { if (S.view === 'library') refreshLibrary(); });
 
 async function loadTools() {
   if (S.tools) return;

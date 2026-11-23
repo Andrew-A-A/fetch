@@ -113,7 +113,7 @@ function pump() {
 }
 
 function start(j) {
-  Object.assign(j, { status: 'running', error: null, log: '', pct: 0, pp: null });
+  Object.assign(j, { status: 'running', error: null, log: '', pct: 0, pp: null, dlStarted: false, stage: null, note: null });
   const p = spawn(y.BIN, y.downloadArgs(j, S()), { env: ENV, windowsHide: true });
   procs.set(j.id, p);
   const onData = (stream) => {
@@ -146,12 +146,24 @@ function lastError(log) {
 }
 
 function handleLine(j, line) {
+  // After Pause/Cancel kills the process, its buffered output still arrives; it must not flip the job back to running.
+  if (j.status === 'paused' || j.status === 'cancelled') return;
   let m = null;
   try { m = y.parseLine(line); } catch { /* malformed json: treat as log */ }
-  if (!m) { if (line.trim()) j.log = (j.log + line + '\n').slice(-8000); return; }
+  if (!m) {
+    if (!line.trim()) return;
+    j.log = (j.log + line + '\n').slice(-8000);
+    // yt-dlp only logs network retries; surface them so a stalled download doesn't look frozen.
+    const r = line.match(/Got error: .*Retrying(?: fragment \d+)? \((\d+)\/(\d+)\)/);
+    if (r) { j.note = `Connection problem, retrying (${r[1]}/${r[2]})`; pushJobs(); }
+    return;
+  }
   if (m.type === 'progress') {
-    Object.assign(j, { status: 'running', done: m.done, total: m.total, speed: m.speed, eta: m.eta, frag: m.frag, frags: m.frags });
+    Object.assign(j, { status: 'running', dlStarted: true, stage: null, note: null, done: m.done, total: m.total, speed: m.speed, eta: m.eta, frag: m.frag, frags: m.frags });
     j.pct = m.total ? Math.min(100, (m.done / m.total) * 100) : 0;
+  } else if (m.type === 'pp' && !j.dlStarted) {
+    // Some post-processors (SponsorBlock) run before the download starts: show them as a stage, not as post-processing.
+    j.stage = m.status === 'started' ? m.name : null;
   } else if (m.type === 'pp') {
     if (m.name !== 'MoveFiles') { j.status = 'pp'; j.pp = m.name; j.ppDone = j.ppDone || []; if (m.status === 'finished' && !j.ppDone.includes(m.name)) j.ppDone.push(m.name); }
   } else if (m.type === 'info') {
@@ -162,6 +174,10 @@ function handleLine(j, line) {
   }
   pushJobs();
 }
+
+// Entries stay in the store when their file disappears (a moved file or unplugged drive can come back);
+// the UI and "skip what I already have" only see files that exist right now.
+function presentLibrary() { return store.library.filter((x) => fs.existsSync(x.filepath)); }
 
 function addToLibrary(j, i) {
   let size = 0;
@@ -176,7 +192,7 @@ function addToLibrary(j, i) {
   store.library.unshift(item);
   save();
   j.files.push(item);
-  send('library', store.library);
+  send('library', presentLibrary());
 }
 
 function finish(j) {
@@ -209,7 +225,7 @@ function killTree(p) {
 function jobAction(id, action) {
   const j = jobs.find((x) => x.id === id);
   if (!j) return;
-  if (action === 'pause' && (j.status === 'running' || j.status === 'waiting')) {
+  if (action === 'pause' && ['running', 'pp', 'waiting'].includes(j.status)) {
     const p = procs.get(id); j.status = 'paused'; killTree(p);
   } else if (action === 'resume' || action === 'retry') {
     if (j.status === 'paused' || j.status === 'error') j.status = 'waiting'; pump();
@@ -228,7 +244,7 @@ function jobAction(id, action) {
   pushJobs();
 }
 
-function pauseAll() { jobs.filter((j) => ['running', 'waiting'].includes(j.status)).forEach((j) => jobAction(j.id, 'pause')); }
+function pauseAll() { jobs.filter((j) => ['running', 'pp', 'waiting'].includes(j.status)).forEach((j) => jobAction(j.id, 'pause')); }
 
 // ---------- subscriptions ----------
 function checkSub(sub) {
@@ -276,8 +292,9 @@ function run(bin, args, { timeout = 0 } = {}) {
 
 // ---------- IPC ----------
 const handlers = {
-  'state': () => ({ settings: S(), library: store.library, subs: store.subs, jobs, presets: Object.fromEntries(Object.entries(y.PRESETS).map(([k, v]) => [k, v.label])) }),
+  'state': () => ({ settings: S(), library: presentLibrary(), subs: store.subs, jobs, presets: Object.fromEntries(Object.entries(y.PRESETS).map(([k, v]) => [k, v.label])) }),
   'settings:set': (patch) => setSettings(patch),
+  'library': () => presentLibrary(),
   'probe': async (query, extra = []) => {
     const a = y.probeArgs(query, S());
     a.splice(-1, 0, ...extra);
@@ -295,15 +312,15 @@ const handlers = {
   },
   'library:remove': async (id, trash) => {
     const it = store.library.find((x) => x.id === id);
-    if (!it) return store.library;
+    if (!it) return presentLibrary();
     if (trash) {
       const { response } = await dialog.showMessageBox(win, { type: 'warning', message: `Move “${it.title}” to the Recycle Bin?`, buttons: ['Move to Recycle Bin', 'Cancel'], defaultId: 1, cancelId: 1 });
-      if (response !== 0) return store.library;
+      if (response !== 0) return presentLibrary();
       await shell.trashItem(it.filepath).catch(() => {});
     }
     store.library = store.library.filter((x) => x.id !== id);
     save();
-    return store.library;
+    return presentLibrary();
   },
   'subs:save': (sub) => {
     const i = store.subs.findIndex((s) => s.id === sub.id);

@@ -14,6 +14,8 @@ assert.strictEqual(after('-r'), '5M');
 assert.strictEqual(after('--sponsorblock-remove'), 'sponsor');
 assert.strictEqual(after('--cookies-from-browser'), 'edge');
 assert.ok(a.includes('--embed-subs') && a.includes('--windows-filenames') && a.includes('-v'));
+assert.strictEqual(a[0], '--ignore-config');
+assert.strictEqual(y.probeArgs('x', {})[0], '--ignore-config');
 assert.deepStrictEqual(a.slice(-2), ['--', 'https://v']); // url last, after "--" so it can't be read as an option
 
 const c = y.downloadArgs({ url: 'u', format: '401+251', merge: 'MKV', opts: {} }, {});
