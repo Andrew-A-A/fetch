@@ -1,5 +1,7 @@
 # Fetch
 
+![Fetch: pull video and audio down from the cloud. A Windows 11 app for yt-dlp.](docs/banner.png)
+
 A Windows 11 desktop app for downloading video and audio, built with Electron on top of [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 
 - **Home:** paste a link, or type words to search YouTube, then pick a quality preset or exact formats.
