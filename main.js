@@ -266,10 +266,11 @@ setInterval(() => {
 }, 60e3);
 
 // ---------- clipboard watch ----------
-let lastClip = clipboard.readText();
-setInterval(() => {
-  const t = clipboard.readText();
-  if (t === lastClip) return;
+// readText() returns a Promise in this Electron version (a string in older ones); await handles both.
+let lastClip = null;
+setInterval(async () => {
+  const t = String((await clipboard.readText()) ?? '');
+  if (lastClip === null || t === lastClip) { lastClip = t; return; } // first read: remember, don't offer
   lastClip = t;
   if (!S().watchClip || !y.isUrl(t) || !Notification.isSupported()) return;
   const n = new Notification({ title: 'Link copied', body: `${t.slice(0, 80)}\nClick to download with your default quality`, icon: appIcon() });

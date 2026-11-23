@@ -13,8 +13,24 @@ A Windows 11 desktop app for downloading video and audio, built with Electron on
 
 ## Install
 
-Download `Fetch Setup <version>.exe` from [Releases](../../releases). It includes yt-dlp and an LGPL build of FFmpeg, so nothing else is needed.
+Download `Fetch Setup <version>.exe` from [Releases](../../releases). It includes yt-dlp and an LGPL build of FFmpeg. For YouTube, also install Deno ([see below](#youtube-and-deno)).
 The installer is not code-signed yet, so Windows SmartScreen will warn about an unknown publisher.
+
+## YouTube and Deno
+
+For YouTube, also install [Deno](https://deno.com), a JavaScript runtime:
+
+```powershell
+winget install DenoLand.Deno
+```
+
+Then restart Fetch. Settings → Components shows whether Deno was found.
+
+**Why it's needed:** YouTube scrambles its video links with JavaScript in its web player, and changes that code every few weeks. yt-dlp unscrambles them by running YouTube's own player code locally, in Deno.
+
+**What happens without it:** Fetch still works, but YouTube offers only a limited set of streams. The best qualities can be missing, and downloads stall or fail more often. Home shows a yellow banner when you paste a YouTube link without Deno installed.
+
+**What it doesn't affect:** other sites don't need Deno. yt-dlp only uses it while reading a YouTube page, and Fetch does nothing else with it. Deno isn't bundled in the installer yet.
 
 ## Develop
 

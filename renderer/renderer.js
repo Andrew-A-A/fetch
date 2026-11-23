@@ -52,6 +52,11 @@ const ymd = (d) => (d ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}` : '
 const codec = (c) => { c = (c || '').split('.')[0]; return { avc1: 'H.264', avc3: 'H.264', vp09: 'VP9', vp9: 'VP9', av01: 'AV1', hev1: 'H.265', hvc1: 'H.265', mp4a: 'AAC', opus: 'Opus', mp3: 'MP3', vorbis: 'Vorbis' }[c] || c || '—'; };
 const isYT = (u) => /youtu\.?be/.test(u || '');
 
+// Deno: yt-dlp runs YouTube's player JavaScript in it to unscramble stream links. Shared by Home, Settings and Queue.
+const DENO_CMD = 'winget install DenoLand.Deno';
+const DENO_DOCS = 'https://docs.deno.com/runtime/getting_started/installation/';
+const DENO_WHY = 'YouTube scrambles its video links with JavaScript that changes every few weeks. yt-dlp uses Deno to run that code on your PC, and only for YouTube. Without it, Fetch sees just a limited set of streams: the best qualities can be missing, and downloads are more likely to stall or fail.';
+
 // ---------- state ----------
 const S = {
   view: 'home', search: '', tools: null,
@@ -122,7 +127,16 @@ function homeView() {
     </form>
     <div class="cap sec">Paste a video, playlist, channel or live link — or type words to search YouTube. Works with 1,800+ sites. <a href="#" data-act="ext" data-arg="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md">See supported sites</a></div>
   </div>
-  ${deno ? `<div class="info warn"><span style="color:var(--warn)">${ic('warn')}</span><span class="strong">Some YouTube formats are hidden</span><span style="flex:1 1 260px">A JavaScript runtime (Deno) is needed to unlock every quality level.</span><button class="btn" data-act="ext" data-arg="https://docs.deno.com/runtime/getting_started/installation/">Install Deno</button><button class="btn sub" aria-label="Dismiss" data-act="noDeno">${ic('x', 12)}</button></div>` : ''}
+  ${deno ? `<div class="info warn" style="align-items:flex-start;padding:12px 12px 12px 16px">
+    <span style="color:var(--warn);margin-top:2px">${ic('warn')}</span>
+    <div style="flex:1 1 320px;display:flex;flex-direction:column;gap:6px">
+      <span class="strong">YouTube needs Deno for full quality</span>
+      <span>${DENO_WHY}</span>
+      <span class="cap">To install it, run <span class="mono">${DENO_CMD}</span> in a terminal, then restart Fetch.</span>
+    </div>
+    <button class="btn" data-act="copyDeno">${S.home.denoCopied ? 'Copied' : 'Copy install command'}</button>
+    <button class="btn sub" data-act="ext" data-arg="${DENO_DOCS}">Other ways to install</button>
+    <button class="btn sub" aria-label="Dismiss" data-act="noDeno">${ic('x', 12)}</button></div>` : ''}
   ${h.error ? `<div class="info err"><span class="strong">Couldn’t fetch that</span><span style="flex:1 1 260px">${esc(h.error)}</span></div>` : ''}
   ${h.note ? `<div class="info note"><span style="flex:1">${esc(h.note)}</span><button class="btn" data-act="go" data-arg="queue">Open queue</button></div>` : ''}
   <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
@@ -391,7 +405,9 @@ function jobItem(j) {
     const p = j.status === 'paused';
     const line = p ? `Paused · ${bytes(j.done) || '0 B'}${j.total ? ' of ' + bytes(j.total) : ''} · resumes where it left off`
       : [j.note, j.total ? `${bytes(j.done)} of ${bytes(j.total)}` : j.note ? '' : j.stage === 'SponsorBlock' ? 'Checking sponsor segments…' : j.stage ? `${ppName(j.stage)}…` : 'Starting…', j.speed && `${bytes(j.speed)}/s`, j.eta != null && `${dur(j.eta)} left`, j.frags && `fragment ${j.frag} of ${j.frags}`].filter(Boolean).join(' · ');
-    body = `${head(label)}<div class="pb${p ? ' paused' : ''}"><i style="width:${j.pct || 0}%"></i></div><div class="cap sec">${esc(line)}</div>`;
+    const denoHint = j.note && isYT(j.url) && S.tools && S.tools.deno === false
+      ? '<div class="cap sec">YouTube downloads stall like this more often without Deno. <a href="#" data-act="go" data-arg="settings">Why, and how to install it</a></div>' : '';
+    body = `${head(label)}<div class="pb${p ? ' paused' : ''}"><i style="width:${j.pct || 0}%"></i></div><div class="cap sec">${esc(line)}</div>${denoHint}`;
     side = btn(p ? 'resume' : 'pause', p ? 'Resume' : 'Pause', p ? 'play' : 'pause') + btn('cancel', 'Cancel', 'x');
   } else if (j.status === 'pp') {
     const done = j.ppDone || [];
@@ -534,7 +550,10 @@ function settingsView() {
     <div class="gh">Components and updates</div><div class="grp">
       ${sc('yt-dlp engine', status(t.ytdlp, `Version ${esc(t.ytdlp)}`, 'Not found — install yt-dlp and add it to PATH') + (m.update ? `<span class="cap sec">${esc(m.update)}</span>` : ''), `${sel('channel', [['stable', 'Stable'], ['nightly', 'Nightly'], ['master', 'Master']], 'Update channel')}<button class="btn" data-act="update">Check for updates</button>`)}
       ${sc('FFmpeg', 'Needed to merge, convert and embed', status(t.ffmpeg, 'Found', 'Not found') + (t.ffmpeg === false ? '<button class="btn acc" data-act="ext" data-arg="https://ffmpeg.org/download.html">Get FFmpeg</button>' : ''))}
-      ${sc('Deno (JavaScript runtime)', 'Unlocks every YouTube quality', status(t.deno, 'Found', 'Not found') + (t.deno === false ? '<button class="btn acc" data-act="ext" data-arg="https://docs.deno.com/runtime/getting_started/installation/">Install</button>' : ''))}
+      ${sc('Deno (JavaScript runtime)', t.deno === false
+        ? `Needed for YouTube, not for other sites. ${DENO_WHY} Install it with <span class="mono">${DENO_CMD}</span>, then restart Fetch.`
+        : 'Used only for YouTube: runs its player code so every format and quality is available.',
+      status(t.deno, 'Found', 'Not found') + (t.deno === false ? `<button class="btn acc" data-act="copyDeno">${S.home.denoCopied ? 'Copied' : 'Copy install command'}</button><button class="btn sub" data-act="ext" data-arg="${DENO_DOCS}">Other ways</button>` : ''))}
       ${sc('aria2 (optional)', 'Faster downloads on some sites', t.aria2 ? tg('aria2', 'Use aria2') : '<button class="btn" data-act="ext" data-arg="https://aria2.github.io/">Get aria2</button>')}
     </div>
     <div class="gh">After download</div><div class="grp">
@@ -572,6 +591,7 @@ const A = {
     S.home.note = `Added ${urls.length} links to the queue.`; render();
   },
   noDeno: () => { S.home.noDeno = true; render(); },
+  copyDeno: () => { call('copy', DENO_CMD); S.home.denoCopied = true; render(); },
   preset: (p) => { Object.assign(S.home, { preset: p, format: null, merge: null }); render(); },
   opt: (k) => { S.home.opts[k] = !S.home.opts[k]; render(); },
   homeDir: async () => { const d = await call('pickDir'); if (d) { S.home.dir = d; render(); } },
