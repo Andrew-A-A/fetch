@@ -1,0 +1,38 @@
+{
+  "name": "fetch",
+  "productName": "Fetch",
+  "version": "0.1.0",
+  "description": "Windows 11 desktop front end for yt-dlp",
+  "author": "Fetch",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/args.test.js",
+    "icon": "node scripts/make-ico.js",
+    "vendor": "node scripts/vendor-bins.js",
+    "dist": "npm run icon && npm run vendor && electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "app.fetch.desktop",
+    "productName": "Fetch",
+    "files": ["main.js", "preload.js", "ytdlp.js", "icon.js", "renderer/**"],
+    "extraResources": [{ "from": "vendor/bin", "to": "bin" }],
+    "directories": { "output": "dist", "buildResources": "build" },
+    "win": { "target": "nsis", "icon": "build/icon.ico" },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Fetch"
+    }
+  },
+  "devDependencies": {
+    "electron": "45.4.1",
+    "electron-builder": "26.18.1"
+  }
+}

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src * data:; style-src 'self' 'unsafe-inline'">
+<title>Fetch</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="w app">
+  <header class="tb">
+    <svg class="logo" width="20" height="20" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="60" height="60" rx="14" fill="#005FB8"/><path d="M19 48H47A12 12 0 0 0 48.5 24.1A17 17 0 0 0 16.2 27.3A10.5 10.5 0 0 0 19 48Z" fill="#fff"/><path d="M28.5 30.5V43.5L39.5 37Z" fill="#005FB8" stroke="#005FB8" stroke-width="2" stroke-linejoin="round"/></svg>
+    <span class="cap">Fetch</span>
+    <div class="tb-mid">
+      <label class="search">
+        <span class="sr-only">Search library and queue</span>
+        <input id="search" class="in" type="search" placeholder="Search library and queue">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
+      </label>
+    </div>
+    <div class="tb-caption"></div>
+  </header>
+  <div class="body">
+    <nav id="nav" aria-label="Main"></nav>
+    <main id="view"></main>
+  </div>
+</div>
+<div id="overlay"></div>
+<script src="renderer.js"></script>
+</body>
+</html>
