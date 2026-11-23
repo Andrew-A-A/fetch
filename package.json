@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "description": "Windows 11 desktop front end for yt-dlp",
   "author": "Fetch",
+  "license": "MIT",
   "main": "main.js",
   "private": true,
   "scripts": {

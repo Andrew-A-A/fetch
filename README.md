@@ -33,6 +33,10 @@ npm run dist
 This draws `build/icon.ico`, copies yt-dlp into `vendor/bin`, downloads the FFmpeg-Builds LGPL shared build once (into `vendor/cache`), and writes `dist/Fetch Setup <version>.exe`.
 Set `YTDLP_EXE` or `FFMPEG_DIR` to use other binaries; GPL and nonfree FFmpeg builds are rejected.
 
+## Licence
+
+Fetch is released under the [MIT License](LICENSE). The bundled tools keep their own licences, listed below.
+
 ## Third-party software
 
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp): Unlicense.
