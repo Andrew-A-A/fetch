@@ -2,7 +2,7 @@
   "name": "fetch",
   "productName": "Fetch",
   "version": "0.1.1",
-  "description": "Windows 11 desktop front end for yt-dlp",
+  "description": "Desktop front end for yt-dlp",
   "author": "Andrew Adel",
   "license": "MIT",
   "main": "main.js",
@@ -12,7 +12,7 @@
     "test": "node test/args.test.js",
     "icon": "node scripts/make-ico.js",
     "vendor": "node scripts/vendor-bins.js",
-    "dist": "npm run icon && npm run vendor && electron-builder --win nsis"
+    "dist": "npm run icon && npm run vendor && electron-builder --publish never"
   },
   "build": {
     "appId": "app.fetch.desktop",
@@ -30,7 +30,9 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Fetch"
-    }
+    },
+    "mac": { "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }], "icon": "build/icon.png", "category": "public.app-category.video" },
+    "linux": { "target": "AppImage", "icon": "build/icon.png", "category": "AudioVideo" }
   },
   "devDependencies": {
     "electron": "45.4.1",

@@ -43,7 +43,7 @@ const out = path.join(__dirname, '..', 'build');
 fs.mkdirSync(out, { recursive: true });
 const buf = ico(SIZES);
 fs.writeFileSync(path.join(out, 'icon.ico'), buf);
-fs.writeFileSync(path.join(out, 'icon.png'), png(256));
+fs.writeFileSync(path.join(out, 'icon.png'), png(512)); // macOS and Linux icon; electron-builder needs >= 512 px for macOS
 
 // self-check: header says icon with every size, and each entry points at a PNG signature
 console.assert(buf.readUInt16LE(2) === 1 && buf.readUInt16LE(4) === SIZES.length, 'bad ico header');

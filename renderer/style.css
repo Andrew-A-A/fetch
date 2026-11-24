@@ -38,6 +38,8 @@ h2{margin:0;font-size:20px;line-height:28px;font-weight:600}
 .logo{flex:none}
 .tb-mid{flex:1;display:flex;justify-content:center;min-width:0}
 .tb-caption{width:138px;flex:none}
+.darwin .tb{padding-left:84px}
+.darwin .tb-caption{width:16px}
 .search{position:relative;width:100%;max-width:380px;display:block;-webkit-app-region:no-drag}
 .search input{width:100%;padding-right:36px}
 .search svg{position:absolute;right:12px;top:9px;color:var(--sec);pointer-events:none}

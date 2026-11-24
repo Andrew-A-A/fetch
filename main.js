@@ -7,14 +7,17 @@ const path = require('path');
 if (app.isPackaged) {
   const bin = path.join(process.resourcesPath, 'bin');
   process.env.PATH = bin + path.delimiter + process.env.PATH;
-  process.env.YTDLP_PATH = path.join(bin, 'yt-dlp.exe');
+  process.env.YTDLP_PATH = path.join(bin, process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
 }
+// Apps opened from Finder get a bare PATH; add where Homebrew and Deno's installer put ffmpeg/deno (macOS ships no FFmpeg).
+if (process.platform === 'darwin') process.env.PATH = [process.env.PATH, '/opt/homebrew/bin', '/usr/local/bin', path.join(require('os').homedir(), '.deno', 'bin')].join(path.delimiter);
 const y = require('./ytdlp');
 const { rasterize } = require('./icon');
 
 if (!app.requestSingleInstanceLock()) { app.exit(0); }
 app.setAppUserModelId('app.fetch.desktop'); // must match build.appId so toasts show the installed app's name and icon
 
+const TRASH = process.platform === 'win32' ? 'Recycle Bin' : 'Trash';
 const ENV = { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' };
 const STORE = path.join(app.getPath('userData'), 'store.json');
 const ARCHIVE = path.join(app.getPath('userData'), 'archive.txt');
@@ -81,7 +84,7 @@ function setSettings(patch) {
   Object.assign(store.settings, patch);
   save();
   if ('theme' in patch) nativeTheme.themeSource = S().theme;
-  if ('mica' in patch) win.setBackgroundMaterial(S().mica ? 'mica' : 'none');
+  if ('mica' in patch && process.platform === 'win32') win.setBackgroundMaterial(S().mica ? 'mica' : 'none');
   if ('concurrent' in patch) pump();
   trayMenu();
   send('settings', S());
@@ -315,7 +318,7 @@ const handlers = {
     const it = store.library.find((x) => x.id === id);
     if (!it) return presentLibrary();
     if (trash) {
-      const { response } = await dialog.showMessageBox(win, { type: 'warning', message: `Move “${it.title}” to the Recycle Bin?`, buttons: ['Move to Recycle Bin', 'Cancel'], defaultId: 1, cancelId: 1 });
+      const { response } = await dialog.showMessageBox(win, { type: 'warning', message: `Move “${it.title}” to the ${TRASH}?`, buttons: [`Move to ${TRASH}`, 'Cancel'], defaultId: 1, cancelId: 1 });
       if (response !== 0) return presentLibrary();
       await shell.trashItem(it.filepath).catch(() => {});
     }
@@ -356,12 +359,14 @@ for (const [ch, fn] of Object.entries(handlers)) ipcMain.handle(ch, (_e, ...args
 
 app.whenReady().then(() => {
   nativeTheme.themeSource = S().theme;
-  nativeTheme.on('updated', () => win && win.setTitleBarOverlay(overlay()));
+  nativeTheme.on('updated', () => win && process.platform !== 'darwin' && win.setTitleBarOverlay(overlay()));
   createWindow();
-  tray = new Tray(appIcon());
+  // macOS menu-bar icons are 16 pt; a 64 px bitmap would show at 64 pt.
+  tray = new Tray(process.platform === 'darwin' ? appIcon().resize({ width: 16, height: 16 }) : appIcon());
   tray.on('click', () => { win.show(); win.focus(); });
   trayMenu();
 });
+app.on('activate', () => win && win.show()); // macOS: Dock icon click while hidden to the tray
 app.on('second-instance', () => { win.show(); win.focus(); });
 app.on('before-quit', () => { quitting = true; for (const p of procs.values()) killTree(p); });
 app.on('window-all-closed', () => app.quit());

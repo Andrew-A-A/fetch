@@ -2,7 +2,7 @@
 
 ![Fetch: pull video and audio down from the cloud. A Windows 11 app for yt-dlp.](docs/banner.png)
 
-A Windows 11 desktop app for downloading video and audio, built with Electron on top of [yt-dlp](https://github.com/yt-dlp/yt-dlp).
+A desktop app for Windows 11, macOS and Linux for downloading video and audio, built with Electron on top of [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 
 - **Home:** paste a link, or type words to search YouTube, then pick a quality preset or exact formats.
 - **Playlists and channels:** pick the items you want and filter them by length, title, upload date or what you already have.
@@ -15,6 +15,10 @@ A Windows 11 desktop app for downloading video and audio, built with Electron on
 
 Download `Fetch Setup <version>.exe` from [Releases](../../releases). It includes yt-dlp and an LGPL build of FFmpeg. For YouTube, also install Deno ([see below](#youtube-and-deno)).
 The installer is not code-signed yet, so Windows SmartScreen will warn about an unknown publisher.
+
+**macOS:** download `Fetch-<version>-arm64.dmg` (Apple silicon) or `Fetch-<version>.dmg` (Intel). It includes yt-dlp but not FFmpeg (no LGPL macOS build is published), so also run `brew install ffmpeg deno`. The app is not signed: right-click it → Open the first time.
+
+**Linux:** download `Fetch-<version>.AppImage`, `chmod +x` it and run it. It includes yt-dlp and an LGPL build of FFmpeg. In-app yt-dlp updates don't work inside an AppImage; update by downloading a newer Fetch.
 
 ## YouTube and Deno
 
@@ -48,7 +52,8 @@ npm test
 npm run dist
 ```
 
-This draws `build/icon.ico`, copies yt-dlp into `vendor/bin`, downloads the FFmpeg-Builds LGPL shared build once (into `vendor/cache`), and writes `dist/Fetch Setup <version>.exe`.
+Run it on the OS you are building for (Windows → `.exe`, macOS → `.dmg`, Linux → `.AppImage`); the [build workflow](.github/workflows/build.yml) builds all three on GitHub Actions when you push a `v*` tag or run it by hand.
+On Windows this draws `build/icon.ico`, copies yt-dlp into `vendor/bin`, downloads the FFmpeg-Builds LGPL shared build once (into `vendor/cache`), and writes `dist/Fetch Setup <version>.exe`.
 Set `YTDLP_EXE` or `FFMPEG_DIR` to use other binaries; GPL and nonfree FFmpeg builds are rejected.
 
 ## Licence
